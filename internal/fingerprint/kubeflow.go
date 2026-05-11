@@ -45,14 +45,31 @@ func (p KubeflowProber) Probe(ctx context.Context, client *http.Client, target, 
 		return f
 	}
 	body := string(r.Body)
+	// Markers:
+	//   - kubeflow-oidc-authservice    → full Kubeflow distribution
+	//     with dex auth (most common; 302/200 + dex/auth path)
+	//   - /dex/auth?...client_id=kubeflow-...  → dex redirect chain
+	//   - <title>Kubeflow Pipelines</title> + KFP_FLAGS → Pipelines
+	//     standalone (lighter-weight; no dex)
+	//   - kf-dashboard / centraldashboard HTML → central dashboard SPA
 	kubeflowMarker := strings.Contains(body, "kubeflow-oidc-authservice") ||
 		strings.Contains(body, "/dex/auth?") ||
-		(strings.Contains(body, "/_/centraldashboard") && strings.Contains(body, "kubeflow"))
+		(strings.Contains(body, "<title>Kubeflow Pipelines</title>") &&
+			strings.Contains(body, "KFP_FLAGS")) ||
+		(strings.Contains(body, "kf-dashboard") && strings.Contains(body, "kubeflow"))
 	if !kubeflowMarker {
-		// Try the central dashboard route directly
+		// Try the central dashboard route directly. Require a real
+		// Kubeflow-specific signal: dex/auth + the OIDC client_id, OR
+		// a Kubeflow-branded title/asset reference. A short text body
+		// that just says "/_/centraldashboard" (e.g. nginx redirect
+		// target leak) is NOT enough.
 		r2 := probe.Get(ctx, client, target+"/_/centraldashboard/", hostname, 4096)
 		body2 := string(r2.Body)
-		if strings.Contains(body2, "kubeflow") || strings.Contains(body2, "centraldashboard") {
+		if r2.Status == 200 &&
+			(strings.Contains(body2, "kubeflow-oidc-authservice") ||
+				strings.Contains(body2, "<title>Kubeflow</title>") ||
+				strings.Contains(body2, "kf-dashboard") ||
+				(strings.Contains(body2, "kubeflow") && strings.Contains(body2, "centraldashboard"))) {
 			kubeflowMarker = true
 			body = body2
 		}

@@ -35,46 +35,54 @@ func (p DifyProber) Probe(ctx context.Context, client *http.Client, target, host
 		Severity: SevNone,
 	}
 
-	// Step 1: SPA root marker — must have <title>Dify</title> AND a
-	// Dify-specific asset reference. The title alone is too generic
-	// (matches a SPIP CMS, GitLab help pages with "Dify" branding,
-	// and various unrelated tools).
-	ru := probe.Get(ctx, client, target+"/", hostname, 8192)
-	f.LatencyMS = ru.LatencyMS
-	if ru.Err != nil {
+	// Step 1: identity probe — /console/api/system-features returns
+	// Dify-specific JSON with sso_enforced_for_signin field. This is
+	// the strongest Dify marker (unique to Dify). Probe this FIRST
+	// since some Dify hosts return only a redirect target from "/"
+	// (no SPA HTML at root).
+	r := probe.Get(ctx, client, target+"/console/api/system-features", hostname, 8192)
+	f.LatencyMS = r.LatencyMS
+	if r.Err != nil {
 		return f
 	}
-	body := string(ru.Body)
-	difySPA := strings.Contains(body, "<title>Dify</title>") &&
-		(strings.Contains(body, "/_next/") ||
-			strings.Contains(body, "console/api") ||
-			strings.Contains(body, "langgenius"))
-	if !difySPA {
+	if r.Status != 200 {
+		return f
+	}
+	rBody := string(r.Body)
+	// Must contain the Dify-specific field signature
+	if !strings.Contains(rBody, "sso_enforced_for_signin") {
 		return f
 	}
 
 	indicators := map[string]interface{}{
-		"spa_root_match": true,
+		"system_features_marker": true,
 	}
 
-	// Step 2: /console/api/system-features returns Dify-specific JSON
-	r := probe.Get(ctx, client, target+"/console/api/system-features", hostname, 8192)
-	if r.Status == 200 {
-		var feat struct {
-			SSOEnforcedForSignin bool `json:"sso_enforced_for_signin"`
-			EnableMarketplace    bool `json:"enable_marketplace"`
-			BrandingEnabled      bool `json:"branding"`
-			LicenseStatus        string `json:"license_status"`
+	var feat struct {
+		SSOEnforcedForSignin bool   `json:"sso_enforced_for_signin"`
+		EnableMarketplace    bool   `json:"enable_marketplace"`
+		BrandingEnabled      bool   `json:"branding"`
+		LicenseStatus        string `json:"license_status"`
+	}
+	if err := json.Unmarshal(r.Body, &feat); err == nil {
+		f.Confirmed = true
+		indicators["sso_enforced"] = feat.SSOEnforcedForSignin
+		indicators["enable_marketplace"] = feat.EnableMarketplace
+		if feat.LicenseStatus != "" {
+			indicators["license_status"] = feat.LicenseStatus
 		}
-		if err := json.Unmarshal(r.Body, &feat); err == nil {
-			f.Confirmed = true
-			indicators["system_features_disclosed"] = true
-			indicators["sso_enforced"] = feat.SSOEnforcedForSignin
-			indicators["enable_marketplace"] = feat.EnableMarketplace
-			if feat.LicenseStatus != "" {
-				indicators["license_status"] = feat.LicenseStatus
-			}
-		}
+	} else {
+		// JSON parse failed but the marker string was present — likely
+		// truncated response. Confirm but mark inconclusive.
+		f.Confirmed = true
+		indicators["json_parse_failed"] = true
+	}
+
+	// Step 2 (optional): SPA root marker for enrichment
+	ru := probe.Get(ctx, client, target+"/", hostname, 8192)
+	body := string(ru.Body)
+	if strings.Contains(body, "<title>Dify</title>") {
+		indicators["spa_root_match"] = true
 	}
 
 	// Step 3: probe /install for the unclaimed-admin-account primitive
@@ -148,8 +156,9 @@ func (p DifyProber) Probe(ctx context.Context, client *http.Client, target, host
 		}
 	}
 
-	if !f.Confirmed && difySPA {
-		f.Confirmed = true
+	// Default: if marker matched (we already returned earlier if it
+	// didn't), keep as info-only when no critical/high signal landed.
+	if f.Confirmed && f.Severity == SevNone {
 		f.Auth = AuthUnknown
 		f.Severity = SevInfo
 	}
