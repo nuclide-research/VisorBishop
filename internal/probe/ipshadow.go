@@ -19,24 +19,37 @@ type ShadowPort struct {
 
 // ShadowPorts are the cross-cutting ports VisorBishop probes on every
 // identified observability platform IP, per Methodology Insight #12.
+//
 // Phase 2 added the database/cache ports that surfaced ClickHouse and
 // Postgres exposures on Helicone's benchmarkit.solutions and Langfuse's
 // langfuse.revdot.ai respectively.
+//
+// Iter-2 (2026-05-11) added the message-broker and object-store ports
+// that the AI observability stack commonly co-locates: Kafka (9092),
+// RabbitMQ (5672), NATS (4222), Memcached (11211), Logstash (5044),
+// and MinIO API (9000). The NATS choice is grounded in the 2026-05-09
+// ParamWallet finding (open NATS JetStream ledger + AI pipeline).
 var ShadowPorts = []ShadowPort{
 	{111, "rpcbind", ""},
 	{1080, "mailcatcher", "/"},
 	{2049, "nfs", ""},
 	{3306, "mysql", ""},
+	{4222, "nats", ""},
+	{5044, "logstash", ""},
 	{5432, "postgresql", ""},
 	{5601, "kibana", "/api/status"},
+	{5672, "rabbitmq", ""},
 	{6379, "redis", ""},
 	{8025, "mailhog", "/api/v2/messages?limit=0"},
 	{8086, "influxdb", "/ping"},
 	{8123, "clickhouse", "/ping"},
+	{9000, "minio_api", "/minio/health/live"},
 	{9090, "prometheus", "/api/v1/query?query=up"},
+	{9092, "kafka", ""},
 	{9093, "alertmanager", "/-/healthy"},
 	{9100, "node_exporter", "/metrics"},
 	{9200, "elasticsearch", "/"},
+	{11211, "memcached", ""},
 	{27017, "mongodb", ""},
 }
 
@@ -100,6 +113,16 @@ func scanOnePort(ctx context.Context, ip string, sp ShadowPort, timeout time.Dur
 		f = redisCharacterize(ctx, ip, sp, f, timeout)
 	} else if sp.Port == 2049 {
 		f.Notes = []string{"NFS port open; run `showmount -e " + ip + "` to enumerate exports"}
+	} else if sp.Port == 4222 {
+		f = natsCharacterize(ctx, ip, sp, f, timeout)
+	} else if sp.Port == 11211 {
+		f = memcachedCharacterize(ctx, ip, sp, f, timeout)
+	} else if sp.Port == 9092 {
+		f.Notes = []string{"Kafka port open; broker-protocol probe omitted (no credential test)"}
+	} else if sp.Port == 5672 {
+		f.Notes = []string{"RabbitMQ AMQP port open; credentials unknown (no credential test)"}
+	} else if sp.Port == 5044 {
+		f.Notes = []string{"Logstash beats-input port open; no client cert/auth test"}
 	}
 
 	return f
@@ -187,6 +210,93 @@ func httpCharacterize(ctx context.Context, ip string, sp ShadowPort, f ShadowFin
 		if r.Status == 204 || (r.Status == 200 && strings.Contains(body, "influxdb")) {
 			f.Confirmed = "InfluxDB"
 		}
+	case "minio_api":
+		// /minio/health/live returns 200 (no auth) when MinIO is up.
+		// The unauthenticated find here isn't "minio default creds" — that's
+		// a credential test we don't do. We're just confirming MinIO presence.
+		if r.Status == 200 {
+			f.Confirmed = "MinIO API"
+			// MinIO API root with no S3 credentials returns 403 AccessDenied
+			// for ListBuckets — that's the expected secure-auth response.
+			// We probe / to see if the operator left ListBuckets anonymous-readable.
+			r2 := Get(ctx, NewClient(timeout), fmt.Sprintf("http://%s:%d/", ip, sp.Port), "", 1024)
+			b2 := string(r2.Body)
+			if r2.Status == 200 && strings.Contains(b2, "ListAllMyBucketsResult") {
+				f.Unauth = true
+				f.Confirmed = "MinIO API (anonymous ListBuckets allowed — CRITICAL)"
+				f.Notes = append(f.Notes, "CRITICAL: MinIO root returns bucket list without auth (anonymous ListBuckets policy)")
+			}
+		}
+	}
+	return f
+}
+
+// natsCharacterize probes the NATS port. NATS servers send INFO as the
+// first line of every connection (no credentials required). If the
+// returned INFO frame indicates "auth_required":true, auth is enforced.
+// If false / absent, the server accepts unauthenticated PUBs/SUBs.
+func natsCharacterize(ctx context.Context, ip string, sp ShadowPort, f ShadowFinding, timeout time.Duration) ShadowFinding {
+	addr := fmt.Sprintf("%s:%d", ip, sp.Port)
+	d := net.Dialer{Timeout: timeout}
+	conn, err := d.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return f
+	}
+	defer conn.Close()
+	conn.SetDeadline(time.Now().Add(3 * time.Second))
+	buf := make([]byte, 1024)
+	n, err := conn.Read(buf)
+	if err != nil || n == 0 {
+		return f
+	}
+	banner := string(buf[:n])
+	if !strings.HasPrefix(banner, "INFO ") {
+		return f
+	}
+	// Parse "INFO { ... }" payload
+	if strings.Contains(banner, `"auth_required":true`) {
+		f.Confirmed = "NATS (auth required)"
+	} else {
+		f.Unauth = true
+		f.Confirmed = "NATS (unauth — anonymous pub/sub allowed)"
+		f.Notes = append(f.Notes, "CRITICAL: NATS accepts pub/sub without authentication")
+		// Surface version if present
+		if i := strings.Index(banner, `"version":"`); i > 0 {
+			rest := banner[i+11:]
+			if j := strings.Index(rest, `"`); j > 0 {
+				f.Confirmed = "NATS " + rest[:j] + " (unauth — anonymous pub/sub allowed)"
+			}
+		}
+	}
+	return f
+}
+
+// memcachedCharacterize sends a `version` command and looks for the
+// "VERSION x.y.z" response. Memcached has no authentication by default
+// (SASL is opt-in). Open port + version response = unauth Memcached.
+func memcachedCharacterize(ctx context.Context, ip string, sp ShadowPort, f ShadowFinding, timeout time.Duration) ShadowFinding {
+	addr := fmt.Sprintf("%s:%d", ip, sp.Port)
+	d := net.Dialer{Timeout: timeout}
+	conn, err := d.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return f
+	}
+	defer conn.Close()
+	conn.SetDeadline(time.Now().Add(3 * time.Second))
+	_, err = conn.Write([]byte("version\r\n"))
+	if err != nil {
+		return f
+	}
+	buf := make([]byte, 256)
+	n, _ := conn.Read(buf)
+	resp := string(buf[:n])
+	if strings.HasPrefix(resp, "VERSION ") {
+		f.Unauth = true
+		ver := strings.TrimSpace(strings.TrimPrefix(resp, "VERSION "))
+		f.Confirmed = "Memcached " + ver + " (unauth)"
+		f.Notes = append(f.Notes, "CRITICAL: Memcached accepts commands without authentication")
+	} else if strings.Contains(resp, "ERROR") || strings.Contains(resp, "CLIENT_ERROR") {
+		f.Confirmed = "Memcached (auth required or restricted)"
 	}
 	return f
 }

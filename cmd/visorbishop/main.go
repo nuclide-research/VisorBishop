@@ -23,7 +23,7 @@ import (
 	"github.com/Nicholas-Kloster/VisorBishop/internal/probe"
 )
 
-const Version = "0.1.0"
+const Version = "0.1.2"
 
 func main() {
 	var (
