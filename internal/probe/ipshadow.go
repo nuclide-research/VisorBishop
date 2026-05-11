@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -51,12 +52,22 @@ type ShadowFinding struct {
 	Notes       []string `json:"notes,omitempty"`
 }
 
-// ShadowScan runs the IP-direct-shadow port sweep for one IP. Returns one
-// ShadowFinding per port that was open + meaningfully probed.
+// ShadowScan runs the IP-direct-shadow port sweep for one IP, probing all
+// 15 ports concurrently. Returns one ShadowFinding per port that was open
+// + meaningfully probed.
 func ShadowScan(ctx context.Context, ip string, timeout time.Duration) []ShadowFinding {
+	results := make([]ShadowFinding, len(ShadowPorts))
+	var wg sync.WaitGroup
+	for i, sp := range ShadowPorts {
+		wg.Add(1)
+		go func(i int, sp ShadowPort) {
+			defer wg.Done()
+			results[i] = scanOnePort(ctx, ip, sp, timeout)
+		}(i, sp)
+	}
+	wg.Wait()
 	findings := []ShadowFinding{}
-	for _, sp := range ShadowPorts {
-		f := scanOnePort(ctx, ip, sp, timeout)
+	for _, f := range results {
 		if f.Open {
 			findings = append(findings, f)
 		}
