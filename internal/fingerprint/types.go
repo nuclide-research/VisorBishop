@@ -30,6 +30,13 @@ const (
 	MLflow Platform = "mlflow"
 	Wandb  Platform = "wandb"
 	Comet  Platform = "comet-ml"
+	// iter-8 expansion: LLM-pipeline builders + ML orchestrators + product analytics
+	Langflow Platform = "langflow"
+	Dify     Platform = "dify"
+	Kubeflow Platform = "kubeflow"
+	PostHog  Platform = "posthog"
+	Prefect  Platform = "prefect"
+	Airflow  Platform = "airflow"
 )
 
 // AllPlatforms returns the canonical list of platform identifiers that
@@ -40,6 +47,7 @@ func AllPlatforms() []Platform {
 		Lunary, OpenLIT, Pezzo, OpikPlatform, AgentOps,
 		LiteLLM, Argilla, Promptfoo,
 		MLflow, Wandb, Comet,
+		Langflow, Dify, Kubeflow, PostHog, Prefect, Airflow,
 	}
 }
 
