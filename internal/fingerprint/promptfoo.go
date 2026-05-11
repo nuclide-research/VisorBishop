@@ -68,10 +68,17 @@ func (p PromptfooProber) Probe(ctx context.Context, client *http.Client, target,
 			f.Notes = append(f.Notes, "CRITICAL: /api/results/ returns eval history without authentication")
 		}
 	case r.Status == 401 || r.Status == 403:
-		// Promptfoo with auth-fronting (unusual)
-		f.Confirmed = true
-		f.Auth = AuthProtected
-		f.Severity = SevInfo
+		// 401/403 alone is NOT enough — many platforms (MLflow,
+		// generic Next.js apps) gate /api/results/ behind auth.
+		// Require the Promptfoo SPA marker before claiming the
+		// platform here.
+		rr := probe.Get(ctx, client, target+"/", hostname, 4096)
+		body := string(rr.Body)
+		if rr.Status == 200 && containsPromptfoo(body) {
+			f.Confirmed = true
+			f.Auth = AuthProtected
+			f.Severity = SevInfo
+		}
 	default:
 		// Try the SPA fallback
 		rr := probe.Get(ctx, client, target+"/", hostname, 4096)

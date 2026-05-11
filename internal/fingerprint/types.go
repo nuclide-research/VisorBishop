@@ -26,6 +26,10 @@ const (
 	LiteLLM      Platform = "litellm"
 	Argilla      Platform = "argilla"
 	Promptfoo    Platform = "promptfoo"
+	// iter-7 expansion: experiment-tracking tier
+	MLflow Platform = "mlflow"
+	Wandb  Platform = "wandb"
+	Comet  Platform = "comet-ml"
 )
 
 // AllPlatforms returns the canonical list of platform identifiers that
@@ -35,6 +39,7 @@ func AllPlatforms() []Platform {
 		PhoenixArize, Langfuse, Helicone, LangSmith,
 		Lunary, OpenLIT, Pezzo, OpikPlatform, AgentOps,
 		LiteLLM, Argilla, Promptfoo,
+		MLflow, Wandb, Comet,
 	}
 }
 
