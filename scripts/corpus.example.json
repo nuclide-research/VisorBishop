@@ -1,0 +1,124 @@
+{
+  "as_of": "2026-05-11",
+  "iterations": 7,
+  "attribution_paths": [
+    "~/recon/2026-05-10-llm-sweep/iter5/litellm-attribution.tsv",
+    "~/recon/2026-05-10-llm-sweep/phoenix/phoenix-attribution.tsv",
+    "~/recon/2026-05-11-iter7/mlflow-attribution.tsv",
+    "~/recon/2026-05-11-iter7/wandb-attribution.tsv"
+  ],
+  "platforms": {
+    "phoenix": {
+      "name": "Phoenix (Arize AI)",
+      "category": "observability",
+      "iter": 2,
+      "shodan_dork": "http.html:\"arize-phoenix\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/phoenix-full-sweep.json",
+      "marker": "GraphQL /graphql + SPA platformVersion"
+    },
+    "langfuse": {
+      "name": "Langfuse",
+      "category": "observability",
+      "iter": 1,
+      "shodan_dork": "ssl.cert.subject.cn:\"langfuse\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter1/langfuse-shadow.json",
+      "marker": "tRPC + langfuse cert subject CN"
+    },
+    "helicone": {
+      "name": "Helicone",
+      "category": "observability",
+      "iter": 1,
+      "shodan_dork": "http.title:\"Helicone\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter1/helicone-shadow.json",
+      "marker": "API-key probe + ClickHouse shadow"
+    },
+    "langsmith": {
+      "name": "LangSmith (self-hosted)",
+      "category": "observability",
+      "iter": 1,
+      "shodan_dork": "/api/v1/info",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter1/langsmith-fixed.json",
+      "marker": "/api/v1/info with LangSmith-specific markers"
+    },
+    "lunary": {
+      "name": "Lunary",
+      "category": "observability",
+      "iter": 1,
+      "shodan_dork": "http.title:\"Lunary\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter1/lunary-shadow.json",
+      "marker": "NextAuth.js detection"
+    },
+    "openlit": {
+      "name": "OpenLIT",
+      "category": "observability",
+      "iter": 1,
+      "shodan_dork": "http.title:\"OpenLIT\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter1/openlit-shadow.json",
+      "marker": "NextAuth.js + OpenLIT-specific routes"
+    },
+    "pezzo": {
+      "name": "Pezzo",
+      "category": "observability",
+      "iter": 1,
+      "shodan_dork": "http.title:\"Pezzo\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter1/pezzo-shadow.json",
+      "marker": "GraphQL introspection"
+    },
+    "agentops": {
+      "name": "AgentOps",
+      "category": "observability",
+      "iter": 4,
+      "shodan_dork": "http.title:\"AgentOps\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter4/agentops-noshadow.json",
+      "marker": "Per-tenant health endpoint + langfuse_host cross-disclosure"
+    },
+    "opik": {
+      "name": "Opik (Comet ML)",
+      "category": "observability",
+      "iter": 4,
+      "shodan_dork": "http.title:\"Opik\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter4/opik-noshadow.json",
+      "marker": "Dropwizard health endpoint"
+    },
+    "argilla": {
+      "name": "Argilla",
+      "category": "annotation",
+      "iter": 5,
+      "shodan_dork": "http.title:\"Argilla\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter5/argilla-noshadow.json",
+      "marker": "argilla.api.errors::UnauthorizedError on /api/v1/me"
+    },
+    "promptfoo": {
+      "name": "Promptfoo",
+      "category": "evaluation",
+      "iter": 5,
+      "shodan_dork": "http.title:\"promptfoo\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter5/promptfoo-noshadow.json",
+      "marker": "/api/results/ JSON shape match"
+    },
+    "litellm": {
+      "name": "LiteLLM Proxy",
+      "category": "gateway",
+      "iter": 6,
+      "shodan_dork": "http.title:\"LiteLLM API\"",
+      "corpus": "~/recon/2026-05-10-llm-sweep/visorbishop-results/iter6/litellm-full.json",
+      "marker": "SPA title \"LiteLLM API\" + /.well-known/litellm-ui-config"
+    },
+    "mlflow": {
+      "name": "MLflow Tracking",
+      "category": "experiment-tracking",
+      "iter": 7,
+      "shodan_dork": "http.title:\"MLflow\"",
+      "corpus": "~/recon/2026-05-11-iter7/results/mlflow-full.json",
+      "marker": "SPA title \"MLflow\" + static-files/favicon.ico, /api/2.0/mlflow/experiments/search"
+    },
+    "wandb": {
+      "name": "Weights & Biases (self-host)",
+      "category": "experiment-tracking",
+      "iter": 7,
+      "shodan_dork": "http.html:\"wandb\"",
+      "corpus": "~/recon/2026-05-11-iter7/results/wandb-v2.json",
+      "marker": "SPA marker + GraphQL /graphql viewer query (data-layer probe required, see Insight #16)"
+    }
+  }
+}

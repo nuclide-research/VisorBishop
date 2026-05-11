@@ -1,3 +1,8 @@
 bin/
 *.log
 .DS_Store
+
+# Operator-local pipeline config (operator-specific paths)
+scripts/corpus.json
+scripts/cross-platform.json
+scripts/visorlog.db
