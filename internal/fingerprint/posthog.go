@@ -23,6 +23,7 @@ type PostHogProber struct{}
 func (p PostHogProber) ID() Platform { return PostHog }
 
 func (p PostHogProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -37,7 +38,7 @@ func (p PostHogProber) Probe(ctx context.Context, client *http.Client, target, h
 	// 200 catchalls) also return 200 on /_health with HTML bodies
 	// containing "ok" deep inside — so we MUST require the body to
 	// be exactly "ok" (after strip), not just contain it.
-	rh := probe.Get(ctx, client, target+"/_health", hostname, 1024)
+	rh := probe.Get(ctx, client, base+"/_health", hostname, 1024)
 	f.LatencyMS = rh.LatencyMS
 	if rh.Err != nil {
 		return f
@@ -48,7 +49,7 @@ func (p PostHogProber) Probe(ctx context.Context, client *http.Client, target, h
 	if !posthogMarker {
 		// Fall back to root SPA marker — must include the PostHog
 		// React SPA bundle reference or a posthog-specific path
-		ru := probe.Get(ctx, client, target+"/", hostname, 4096)
+		ru := probe.Get(ctx, client, base+"/", hostname, 4096)
 		body := string(ru.Body)
 		if (strings.Contains(body, "<title>PostHog</title>") &&
 			(strings.Contains(body, "posthog") || strings.Contains(body, "/static/"))) ||
@@ -66,7 +67,7 @@ func (p PostHogProber) Probe(ctx context.Context, client *http.Client, target, h
 	}
 
 	// Step 2: probe /api/projects/ — if unauth, returns project list
-	r := probe.Get(ctx, client, target+"/api/projects/", hostname, 16384)
+	r := probe.Get(ctx, client, base+"/api/projects/", hostname, 16384)
 	switch {
 	case r.Status == 200:
 		var resp struct {

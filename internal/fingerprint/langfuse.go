@@ -25,6 +25,7 @@ type langfuseHealthResponse struct {
 }
 
 func (p LangfuseProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -34,7 +35,7 @@ func (p LangfuseProber) Probe(ctx context.Context, client *http.Client, target, 
 	}
 
 	// Step 1: Confirm via the unauth health endpoint
-	r := probe.Get(ctx, client, target+"/api/public/health", hostname, 1024)
+	r := probe.Get(ctx, client, base+"/api/public/health", hostname, 1024)
 	f.LatencyMS = r.LatencyMS
 	if r.Err != nil || r.Status != 200 {
 		return f
@@ -52,7 +53,7 @@ func (p LangfuseProber) Probe(ctx context.Context, client *http.Client, target, 
 	indicators := map[string]interface{}{}
 
 	// Step 2: Verify auth on /api/public/projects
-	r2 := probe.Get(ctx, client, target+"/api/public/projects", hostname, 512)
+	r2 := probe.Get(ctx, client, base+"/api/public/projects", hostname, 512)
 	switch {
 	case r2.Status == 401 || r2.Status == 403:
 		f.Auth = AuthProtected

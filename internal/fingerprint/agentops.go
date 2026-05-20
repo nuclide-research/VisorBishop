@@ -22,6 +22,7 @@ type AgentOpsProber struct{}
 func (p AgentOpsProber) ID() Platform { return AgentOps }
 
 func (p AgentOpsProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -30,7 +31,7 @@ func (p AgentOpsProber) Probe(ctx context.Context, client *http.Client, target, 
 		Severity: SevNone,
 	}
 
-	r := probe.Get(ctx, client, target+"/api/health", hostname, 2048)
+	r := probe.Get(ctx, client, base+"/api/health", hostname, 2048)
 	f.LatencyMS = r.LatencyMS
 	if r.Err != nil || (r.Status != 200 && r.Status != 503) {
 		return f
@@ -77,7 +78,7 @@ func (p AgentOpsProber) Probe(ctx context.Context, client *http.Client, target, 
 	}
 
 	// Verify protected endpoint behavior
-	rp := probe.Get(ctx, client, target+"/api/v1/sessions", hostname, 512)
+	rp := probe.Get(ctx, client, base+"/api/v1/sessions", hostname, 512)
 	switch {
 	case rp.Status == 401 || rp.Status == 403:
 		f.Auth = AuthInfoOnly

@@ -21,6 +21,7 @@ type OpikProber struct{}
 func (p OpikProber) ID() Platform { return OpikPlatform }
 
 func (p OpikProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -29,7 +30,7 @@ func (p OpikProber) Probe(ctx context.Context, client *http.Client, target, host
 		Severity: SevNone,
 	}
 
-	r := probe.Get(ctx, client, target+"/api/is-alive/ping", hostname, 512)
+	r := probe.Get(ctx, client, base+"/api/is-alive/ping", hostname, 512)
 	f.LatencyMS = r.LatencyMS
 	if r.Err != nil || r.Status != 200 {
 		return f
@@ -44,7 +45,7 @@ func (p OpikProber) Probe(ctx context.Context, client *http.Client, target, host
 	f.Confirmed = true
 
 	// Pull version
-	rv := probe.Get(ctx, client, target+"/api/is-alive/ver", hostname, 256)
+	rv := probe.Get(ctx, client, base+"/api/is-alive/ver", hostname, 256)
 	if rv.Status == 200 {
 		var ver struct {
 			Version string `json:"version"`
@@ -55,7 +56,7 @@ func (p OpikProber) Probe(ctx context.Context, client *http.Client, target, host
 	}
 
 	// Verify auth on /api/v1/private/projects (should be auth-required in Cloud, may differ self-hosted)
-	rp := probe.Get(ctx, client, target+"/api/v1/private/projects", hostname, 1024)
+	rp := probe.Get(ctx, client, base+"/api/v1/private/projects", hostname, 1024)
 	switch {
 	case rp.Status == 200 && strings.Contains(string(rp.Body), `"content"`):
 		f.Auth = AuthOpen

@@ -26,6 +26,7 @@ type AirflowProber struct{}
 func (p AirflowProber) ID() Platform { return Airflow }
 
 func (p AirflowProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -36,7 +37,7 @@ func (p AirflowProber) Probe(ctx context.Context, client *http.Client, target, h
 
 	// Step 1: confirm via SPA root with Airflow-specific marker
 	// (title "Airflow" + the static asset path or pin_32.png favicon)
-	ru := probe.Get(ctx, client, target+"/", hostname, 8192)
+	ru := probe.Get(ctx, client, base+"/", hostname, 8192)
 	f.LatencyMS = ru.LatencyMS
 	if ru.Err != nil {
 		return f
@@ -49,7 +50,7 @@ func (p AirflowProber) Probe(ctx context.Context, client *http.Client, target, h
 			strings.Contains(body, "/static/pin_"))
 	// Older 2.x deployments use a different shell — check /home or /login
 	if !airflowSPA {
-		rl := probe.Get(ctx, client, target+"/login/", hostname, 4096)
+		rl := probe.Get(ctx, client, base+"/login/", hostname, 4096)
 		bl := string(rl.Body)
 		if rl.Status == 200 && strings.Contains(bl, "Airflow") &&
 			(strings.Contains(bl, "Sign In") || strings.Contains(bl, "airflow") ||
@@ -70,7 +71,7 @@ func (p AirflowProber) Probe(ctx context.Context, client *http.Client, target, h
 		"/api/v1/dags?limit=10",
 		"/api/v2/dags?limit=10",
 	} {
-		r := probe.Get(ctx, client, target+endpoint, hostname, 32768)
+		r := probe.Get(ctx, client, base+endpoint, hostname, 32768)
 		switch {
 		case r.Status == 200:
 			var resp struct {
@@ -116,7 +117,7 @@ func (p AirflowProber) Probe(ctx context.Context, client *http.Client, target, h
 
 	// Step 3: version from /api/v1/version (legacy) or /api/v2/version
 	for _, vpath := range []string{"/api/v1/version", "/api/v2/version"} {
-		rv := probe.Get(ctx, client, target+vpath, hostname, 512)
+		rv := probe.Get(ctx, client, base+vpath, hostname, 512)
 		if rv.Status == 200 {
 			var v struct {
 				Version string `json:"version"`

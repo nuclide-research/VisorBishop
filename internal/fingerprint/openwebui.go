@@ -9,13 +9,6 @@ import (
 	"github.com/Nicholas-Kloster/VisorBishop/internal/probe"
 )
 
-// trimTarget strips a trailing slash from the target URL so that path
-// concatenation (target+"/api/config") never produces a double slash.
-// This is called once per Probe invocation — not modified on the Finding.
-func trimTarget(t string) string {
-	return strings.TrimRight(t, "/")
-}
-
 // OpenWebUIProber detects Open WebUI self-hosted instances.
 //
 // Open WebUI is an extensible LLM chat frontend that wraps Ollama, OpenAI,

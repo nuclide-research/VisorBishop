@@ -26,6 +26,7 @@ type PrefectProber struct{}
 func (p PrefectProber) ID() Platform { return Prefect }
 
 func (p PrefectProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -35,7 +36,7 @@ func (p PrefectProber) Probe(ctx context.Context, client *http.Client, target, h
 	}
 
 	// Step 1: SPA root marker
-	ru := probe.Get(ctx, client, target+"/", hostname, 16384)
+	ru := probe.Get(ctx, client, base+"/", hostname, 16384)
 	f.LatencyMS = ru.LatencyMS
 	if ru.Err != nil {
 		return f
@@ -55,7 +56,7 @@ func (p PrefectProber) Probe(ctx context.Context, client *http.Client, target, h
 	}
 
 	// Step 2: probe /api/admin/version
-	rv := probe.Get(ctx, client, target+"/api/admin/version", hostname, 1024)
+	rv := probe.Get(ctx, client, base+"/api/admin/version", hostname, 1024)
 	if rv.Status == 200 {
 		var v struct {
 			Version string `json:"version"`
@@ -68,7 +69,7 @@ func (p PrefectProber) Probe(ctx context.Context, client *http.Client, target, h
 
 	// Step 3: probe /api/flows/filter for unauth flow list
 	flowFilterBody := strings.NewReader(`{"limit":10}`)
-	req, err := http.NewRequestWithContext(ctx, "POST", target+"/api/flows/filter", flowFilterBody)
+	req, err := http.NewRequestWithContext(ctx, "POST", base+"/api/flows/filter", flowFilterBody)
 	if err == nil {
 		req.Header.Set("Content-Type", "application/json")
 		if hostname != "" {

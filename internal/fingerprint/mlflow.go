@@ -33,6 +33,7 @@ type MLflowProber struct{}
 func (p MLflowProber) ID() Platform { return MLflow }
 
 func (p MLflowProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -46,7 +47,7 @@ func (p MLflowProber) Probe(ctx context.Context, client *http.Client, target, ho
 	// <title>MLflow</title> + ./static-files/favicon.ico reference. Generic
 	// title-only matches are rejected — many tools use the title "MLflow"
 	// for unrelated reasons (blog posts, ML pipelines named after MLflow).
-	ru := probe.Get(ctx, client, target+"/", hostname, 4096)
+	ru := probe.Get(ctx, client, base+"/", hostname, 4096)
 	f.LatencyMS = ru.LatencyMS
 	if ru.Err != nil {
 		return f
@@ -66,7 +67,7 @@ func (p MLflowProber) Probe(ctx context.Context, client *http.Client, target, ho
 	// MLflow's REST API takes POST with a JSON body, but a GET also returns
 	// 405 vs 401/403 — useful to distinguish unauth (no auth layer at all)
 	// from auth-protected (returns 401/403).
-	r := probe.Get(ctx, client, target+"/api/2.0/mlflow/experiments/search?max_results=10", hostname, 65536)
+	r := probe.Get(ctx, client, base+"/api/2.0/mlflow/experiments/search?max_results=10", hostname, 65536)
 	switch {
 	case r.Status == 200:
 		// Try to parse the experiments shape
@@ -141,7 +142,7 @@ func (p MLflowProber) Probe(ctx context.Context, client *http.Client, target, ho
 	// Step 3: probe /version for the MLflow version string.
 	// MLflow exposes /version as plain text (e.g. "2.9.2\n"). Older
 	// versions (pre-2.2.1) are vulnerable to CVE-2023-1177.
-	rv := probe.Get(ctx, client, target+"/version", hostname, 256)
+	rv := probe.Get(ctx, client, base+"/version", hostname, 256)
 	if rv.Status == 200 {
 		v := strings.TrimSpace(string(rv.Body))
 		// Sanity: should match X.Y.Z shape, not arbitrary HTML
@@ -159,7 +160,7 @@ func (p MLflowProber) Probe(ctx context.Context, client *http.Client, target, ho
 	// Step 4: probe /ajax-api/2.0/mlflow/registered-models/search for
 	// the model registry — additional data class disclosure when unauth.
 	if f.Auth == AuthOpen {
-		rm := probe.Get(ctx, client, target+"/api/2.0/mlflow/registered-models/search?max_results=10", hostname, 8192)
+		rm := probe.Get(ctx, client, base+"/api/2.0/mlflow/registered-models/search?max_results=10", hostname, 8192)
 		if rm.Status == 200 {
 			var modelsResp struct {
 				RegisteredModels []struct {

@@ -27,6 +27,7 @@ type DifyProber struct{}
 func (p DifyProber) ID() Platform { return Dify }
 
 func (p DifyProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -40,7 +41,7 @@ func (p DifyProber) Probe(ctx context.Context, client *http.Client, target, host
 	// the strongest Dify marker (unique to Dify). Probe this FIRST
 	// since some Dify hosts return only a redirect target from "/"
 	// (no SPA HTML at root).
-	r := probe.Get(ctx, client, target+"/console/api/system-features", hostname, 8192)
+	r := probe.Get(ctx, client, base+"/console/api/system-features", hostname, 8192)
 	f.LatencyMS = r.LatencyMS
 	if r.Err != nil {
 		return f
@@ -79,7 +80,7 @@ func (p DifyProber) Probe(ctx context.Context, client *http.Client, target, host
 	}
 
 	// Step 2 (optional): SPA root marker for enrichment
-	ru := probe.Get(ctx, client, target+"/", hostname, 8192)
+	ru := probe.Get(ctx, client, base+"/", hostname, 8192)
 	body := string(ru.Body)
 	if strings.Contains(body, "<title>Dify</title>") {
 		indicators["spa_root_match"] = true
@@ -88,8 +89,8 @@ func (p DifyProber) Probe(ctx context.Context, client *http.Client, target, host
 	// Step 3: probe /install for the unclaimed-admin-account primitive
 	// If the install endpoint responds with 200 + a form, the admin
 	// account has never been claimed — first POST takes it.
-	ri := probe.Get(ctx, client, target+"/install", hostname, 4096)
-	installCheck := probe.Get(ctx, client, target+"/console/api/setup", hostname, 2048)
+	ri := probe.Get(ctx, client, base+"/install", hostname, 4096)
+	installCheck := probe.Get(ctx, client, base+"/console/api/setup", hostname, 2048)
 	if installCheck.Status == 200 {
 		var s struct {
 			Step string `json:"step"`
@@ -112,7 +113,7 @@ func (p DifyProber) Probe(ctx context.Context, client *http.Client, target, host
 
 	// Step 4: if not unclaimed-install-critical, try the public apps list
 	if f.Severity == SevNone {
-		ra := probe.Get(ctx, client, target+"/console/api/apps", hostname, 16384)
+		ra := probe.Get(ctx, client, base+"/console/api/apps", hostname, 16384)
 		switch {
 		case ra.Status == 200:
 			// Some Dify deployments expose the app list without auth

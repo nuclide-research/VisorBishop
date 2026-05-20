@@ -23,6 +23,7 @@ type ArgillaProber struct{}
 func (p ArgillaProber) ID() Platform { return Argilla }
 
 func (p ArgillaProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -31,7 +32,7 @@ func (p ArgillaProber) Probe(ctx context.Context, client *http.Client, target, h
 		Severity: SevNone,
 	}
 
-	r := probe.Get(ctx, client, target+"/api/v1/me", hostname, 1024)
+	r := probe.Get(ctx, client, base+"/api/v1/me", hostname, 1024)
 	f.LatencyMS = r.LatencyMS
 	if r.Err != nil {
 		return f
@@ -51,7 +52,7 @@ func (p ArgillaProber) Probe(ctx context.Context, client *http.Client, target, h
 		f.Notes = append(f.Notes, "CRITICAL: /api/v1/me returns user info without auth")
 	} else {
 		// Try title-fallback for SPA hosts where /api/v1/me redirects
-		rr := probe.Get(ctx, client, target+"/", hostname, 4096)
+		rr := probe.Get(ctx, client, base+"/", hostname, 4096)
 		if strings.Contains(string(rr.Body), "Argilla") && strings.Contains(string(rr.Body), "<title>") {
 			// Confirmed via SPA but auth state unknown
 			f.Confirmed = true
