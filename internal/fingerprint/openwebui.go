@@ -75,7 +75,7 @@ func (p OpenWebUIProber) Probe(ctx context.Context, client *http.Client, target,
 
 	var cfg openWebUIConfig
 	if r.Err == nil && r.Status == 200 {
-		if err := json.Unmarshal(r.Body, &cfg); err == nil && cfg.Name == "Open WebUI" {
+		if err := json.Unmarshal(r.Body, &cfg); err == nil && strings.Contains(cfg.Name, "Open WebUI") {
 			f.Confirmed = true
 			f.Version = cfg.Version
 		}
@@ -88,9 +88,10 @@ func (p OpenWebUIProber) Probe(ctx context.Context, client *http.Client, target,
 			var manifest struct {
 				Name string `json:"name"`
 			}
-			if err := json.Unmarshal(rm.Body, &manifest); err == nil && manifest.Name == "Open WebUI" {
+			if err := json.Unmarshal(rm.Body, &manifest); err == nil && strings.Contains(manifest.Name, "Open WebUI") {
 				f.Confirmed = true
 				// Version not available from manifest — leave empty.
+				// branded_name is not surfaced here: manifest path lacks auth context.
 			}
 		}
 	}
@@ -101,7 +102,13 @@ func (p OpenWebUIProber) Probe(ctx context.Context, client *http.Client, target,
 
 	// Step 3: classify auth posture from the /api/config feature flags.
 	// Only meaningful if /api/config was the confirming probe (cfg is populated).
-	if cfg.Name == "Open WebUI" {
+	if strings.Contains(cfg.Name, "Open WebUI") {
+		// Branded deployments customise the name field (e.g. "U of A GenAI (Open WebUI)").
+		// Preserve the full value for downstream attribution when it differs from the
+		// canonical bare title.
+		if cfg.Name != "Open WebUI" {
+			indicators["branded_name"] = cfg.Name
+		}
 		authEnabled := cfg.Features.Auth
 		signupEnabled := cfg.Features.EnableSignup
 
