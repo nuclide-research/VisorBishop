@@ -30,6 +30,7 @@ type langsmithInfoResponse struct {
 }
 
 func (p LangSmithProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -39,7 +40,7 @@ func (p LangSmithProber) Probe(ctx context.Context, client *http.Client, target,
 	}
 
 	// Probe /api/v1/info — unauthenticated by design on LangSmith
-	r := probe.Get(ctx, client, target+"/api/v1/info", hostname, 8192)
+	r := probe.Get(ctx, client, base+"/api/v1/info", hostname, 8192)
 	f.LatencyMS = r.LatencyMS
 	if r.Err != nil || r.Status != 200 || len(r.Body) == 0 {
 		return f
@@ -92,7 +93,7 @@ func (p LangSmithProber) Probe(ctx context.Context, client *http.Client, target,
 	f.Indicators = indicators
 
 	// Verify auth posture on the protected /api/v1/sessions endpoint
-	r2 := probe.Get(ctx, client, target+"/api/v1/sessions", hostname, 256)
+	r2 := probe.Get(ctx, client, base+"/api/v1/sessions", hostname, 256)
 	switch {
 	case r2.Status == 200:
 		// Should never happen on LangSmith — protected endpoint, would be a CRITICAL find

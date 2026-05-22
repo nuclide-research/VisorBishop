@@ -23,6 +23,7 @@ func (p PhoenixProber) ID() Platform { return PhoenixArize }
 var phoenixVersionRE = regexp.MustCompile(`platformVersion:\s*"([0-9]+\.[0-9]+\.[0-9]+)"`)
 
 func (p PhoenixProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -32,7 +33,7 @@ func (p PhoenixProber) Probe(ctx context.Context, client *http.Client, target, h
 	}
 
 	// Step 1: Confirm this is Phoenix via the SPA HTML
-	r := probe.Get(ctx, client, target+"/", hostname, 32768)
+	r := probe.Get(ctx, client, base+"/", hostname, 32768)
 	f.LatencyMS = r.LatencyMS
 	if r.Err != nil || r.Status != 200 {
 		return f
@@ -52,7 +53,7 @@ func (p PhoenixProber) Probe(ctx context.Context, client *http.Client, target, h
 
 	// Step 2: Probe /graphql for unauth read access
 	gqlBody := `{"query":"{ projects(first: 5) { edges { node { id name recordCount traceCount tokenCountTotal } } } }"}`
-	r2 := probe.Do(ctx, client, "POST", target+"/graphql", hostname, strings.NewReader(gqlBody), 4096)
+	r2 := probe.Do(ctx, client, "POST", base+"/graphql", hostname, strings.NewReader(gqlBody), 4096)
 	if r2.Err == nil && r2.Status == 200 && strings.Contains(string(r2.Body), `"data":`) {
 		f.Auth = AuthOpen
 		f.Severity = SevCritical
@@ -108,7 +109,7 @@ func (p PhoenixProber) Probe(ctx context.Context, client *http.Client, target, h
 	// Step 3: If unauth, probe the secrets table (v15.x+)
 	if f.Auth == AuthOpen && f.Version != "" && versionAtLeast(f.Version, "15.0.0") {
 		secretsBody := `{"query":"{ secrets(first: 50) { edges { node { key } } } }"}`
-		r3 := probe.Do(ctx, client, "POST", target+"/graphql", hostname, strings.NewReader(secretsBody), 4096)
+		r3 := probe.Do(ctx, client, "POST", base+"/graphql", hostname, strings.NewReader(secretsBody), 4096)
 		if r3.Err == nil && r3.Status == 200 && strings.Contains(string(r3.Body), `"secrets"`) {
 			var sResp struct {
 				Data struct {

@@ -20,6 +20,7 @@ type HeliconeProber struct{}
 func (p HeliconeProber) ID() Platform { return Helicone }
 
 func (p HeliconeProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -28,7 +29,7 @@ func (p HeliconeProber) Probe(ctx context.Context, client *http.Client, target, 
 		Severity: SevNone,
 	}
 
-	r := probe.Get(ctx, client, target+"/", hostname, 32768)
+	r := probe.Get(ctx, client, base+"/", hostname, 32768)
 	f.LatencyMS = r.LatencyMS
 	if r.Err != nil {
 		return f
@@ -44,7 +45,7 @@ func (p HeliconeProber) Probe(ctx context.Context, client *http.Client, target, 
 	if r.Status == 307 {
 		loc := r.Header.Get("Location")
 		if loc == "/signin" || strings.HasSuffix(loc, "/signin") {
-			r2 := probe.Get(ctx, client, target+"/signin", hostname, 32768)
+			r2 := probe.Get(ctx, client, base+"/signin", hostname, 32768)
 			body = string(r2.Body)
 			if strings.Contains(body, "Helicone") || strings.Contains(body, "helicone") {
 				confirmed = true
@@ -66,7 +67,7 @@ func (p HeliconeProber) Probe(ctx context.Context, client *http.Client, target, 
 
 	// Case 3: fall back to /api/health
 	if !confirmed {
-		r3 := probe.Get(ctx, client, target+"/api/health", hostname, 1024)
+		r3 := probe.Get(ctx, client, base+"/api/health", hostname, 1024)
 		if r3.Status == 200 && strings.Contains(string(r3.Body), "helicone") {
 			confirmed = true
 		}

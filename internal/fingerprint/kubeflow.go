@@ -26,6 +26,7 @@ type KubeflowProber struct{}
 func (p KubeflowProber) ID() Platform { return Kubeflow }
 
 func (p KubeflowProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -39,7 +40,7 @@ func (p KubeflowProber) Probe(ctx context.Context, client *http.Client, target, 
 	// redirect to /dex/auth. Either way the platform identity is
 	// signalled by the dex/auth path + kubeflow-oidc-authservice
 	// client_id.
-	r := probe.Get(ctx, client, target+"/", hostname, 8192)
+	r := probe.Get(ctx, client, base+"/", hostname, 8192)
 	f.LatencyMS = r.LatencyMS
 	if r.Err != nil {
 		return f
@@ -63,7 +64,7 @@ func (p KubeflowProber) Probe(ctx context.Context, client *http.Client, target, 
 		// a Kubeflow-branded title/asset reference. A short text body
 		// that just says "/_/centraldashboard" (e.g. nginx redirect
 		// target leak) is NOT enough.
-		r2 := probe.Get(ctx, client, target+"/_/centraldashboard/", hostname, 4096)
+		r2 := probe.Get(ctx, client, base+"/_/centraldashboard/", hostname, 4096)
 		body2 := string(r2.Body)
 		if r2.Status == 200 &&
 			(strings.Contains(body2, "kubeflow-oidc-authservice") ||
@@ -96,7 +97,7 @@ func (p KubeflowProber) Probe(ctx context.Context, client *http.Client, target, 
 	// Step 3: try the Pipelines API at /pipeline/apis/v1beta1/pipelines
 	// or v2/pipelines — if the operator skipped istio gating, the
 	// pipeline service may be reachable.
-	rp := probe.Get(ctx, client, target+"/pipeline/apis/v1beta1/pipelines?page_size=10", hostname, 16384)
+	rp := probe.Get(ctx, client, base+"/pipeline/apis/v1beta1/pipelines?page_size=10", hostname, 16384)
 	if rp.Status == 200 {
 		bp := string(rp.Body)
 		if strings.Contains(bp, `"pipelines"`) || strings.Contains(bp, `"total_size"`) {

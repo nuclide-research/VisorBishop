@@ -24,6 +24,7 @@ type PromptfooProber struct{}
 func (p PromptfooProber) ID() Platform { return Promptfoo }
 
 func (p PromptfooProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -34,7 +35,7 @@ func (p PromptfooProber) Probe(ctx context.Context, client *http.Client, target,
 
 	// Note the trailing slash — promptfoo's Next.js routes require it.
 	// Use a generous 64KB read budget since the eval list can be large.
-	r := probe.Get(ctx, client, target+"/api/results/", hostname, 65536)
+	r := probe.Get(ctx, client, base+"/api/results/", hostname, 65536)
 	f.LatencyMS = r.LatencyMS
 	if r.Err != nil {
 		return f
@@ -72,7 +73,7 @@ func (p PromptfooProber) Probe(ctx context.Context, client *http.Client, target,
 		// generic Next.js apps) gate /api/results/ behind auth.
 		// Require the Promptfoo SPA marker before claiming the
 		// platform here.
-		rr := probe.Get(ctx, client, target+"/", hostname, 4096)
+		rr := probe.Get(ctx, client, base+"/", hostname, 4096)
 		body := string(rr.Body)
 		if rr.Status == 200 && containsPromptfoo(body) {
 			f.Confirmed = true
@@ -81,7 +82,7 @@ func (p PromptfooProber) Probe(ctx context.Context, client *http.Client, target,
 		}
 	default:
 		// Try the SPA fallback
-		rr := probe.Get(ctx, client, target+"/", hostname, 4096)
+		rr := probe.Get(ctx, client, base+"/", hostname, 4096)
 		body := string(rr.Body)
 		if rr.Status == 200 && (containsPromptfoo(body)) {
 			f.Confirmed = true

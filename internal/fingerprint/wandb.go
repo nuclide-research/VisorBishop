@@ -27,6 +27,7 @@ type WandbProber struct{}
 func (p WandbProber) ID() Platform { return Wandb }
 
 func (p WandbProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -38,7 +39,7 @@ func (p WandbProber) Probe(ctx context.Context, client *http.Client, target, hos
 	// Step 1: confirm W&B via the SPA root markers.
 	// "<title>Weights &amp; Biases</title>" + the /env.js bootstrap script
 	// + Sentry script are the specific local-server fingerprints.
-	ru := probe.Get(ctx, client, target+"/", hostname, 8192)
+	ru := probe.Get(ctx, client, base+"/", hostname, 8192)
 	f.LatencyMS = ru.LatencyMS
 	if ru.Err != nil {
 		return f
@@ -57,7 +58,7 @@ func (p WandbProber) Probe(ctx context.Context, client *http.Client, target, hos
 
 	// Step 2: probe /env.js for build-time config (often leaks auth mode,
 	// instance type, organization name on self-hosts).
-	re := probe.Get(ctx, client, target+"/env.js", hostname, 4096)
+	re := probe.Get(ctx, client, base+"/env.js", hostname, 4096)
 	if re.Status == 200 {
 		envBody := string(re.Body)
 		if len(envBody) > 0 && len(envBody) < 4000 {
@@ -76,7 +77,7 @@ func (p WandbProber) Probe(ctx context.Context, client *http.Client, target, hos
 	// W&B's Apollo server accepts GET introspection-style; we use POST
 	// with a minimal viewer query.
 	gqlBody := strings.NewReader(`{"query":"{ viewer { id username email } }"}`)
-	req, err := http.NewRequestWithContext(ctx, "POST", target+"/graphql", gqlBody)
+	req, err := http.NewRequestWithContext(ctx, "POST", base+"/graphql", gqlBody)
 	if err == nil {
 		req.Header.Set("Content-Type", "application/json")
 		if hostname != "" {
@@ -155,7 +156,7 @@ func (p WandbProber) Probe(ctx context.Context, client *http.Client, target, hos
 	}
 
 	// Step 4: probe /health for the server build version
-	rh := probe.Get(ctx, client, target+"/health", hostname, 1024)
+	rh := probe.Get(ctx, client, base+"/health", hostname, 1024)
 	if rh.Status == 200 {
 		var health struct {
 			Status  string `json:"status"`

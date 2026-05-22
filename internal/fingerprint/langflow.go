@@ -27,6 +27,7 @@ type LangflowProber struct{}
 func (p LangflowProber) ID() Platform { return Langflow }
 
 func (p LangflowProber) Probe(ctx context.Context, client *http.Client, target, hostname string) Finding {
+	base := trimTarget(target)
 	f := Finding{
 		Target:   target,
 		Hostname: hostname,
@@ -36,7 +37,7 @@ func (p LangflowProber) Probe(ctx context.Context, client *http.Client, target, 
 	}
 
 	// Step 1: confirm via SPA root with the Langflow title + signature script bundles
-	ru := probe.Get(ctx, client, target+"/", hostname, 4096)
+	ru := probe.Get(ctx, client, base+"/", hostname, 4096)
 	f.LatencyMS = ru.LatencyMS
 	if ru.Err != nil {
 		return f
@@ -55,7 +56,7 @@ func (p LangflowProber) Probe(ctx context.Context, client *http.Client, target, 
 	// Step 2: probe /api/v1/flows/ for flow disclosure
 	// Langflow's flow API supports a paginated GET that returns the
 	// flow list (including data graph) when no auth is configured.
-	r := probe.Get(ctx, client, target+"/api/v1/flows/?page=1&size=10", hostname, 65536)
+	r := probe.Get(ctx, client, base+"/api/v1/flows/?page=1&size=10", hostname, 65536)
 	switch {
 	case r.Status == 200:
 		var resp struct {
@@ -117,7 +118,7 @@ func (p LangflowProber) Probe(ctx context.Context, client *http.Client, target, 
 	}
 
 	// Step 3: version from /api/v1/version
-	rv := probe.Get(ctx, client, target+"/api/v1/version", hostname, 1024)
+	rv := probe.Get(ctx, client, base+"/api/v1/version", hostname, 1024)
 	if rv.Status == 200 {
 		var v struct {
 			Version string `json:"version"`
