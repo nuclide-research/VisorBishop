@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Nicholas-Kloster/VisorBishop/internal/probe"
+	"github.com/nuclide-research/VisorBishop/internal/probe"
 )
 
 // LangflowProber detects Langflow self-hosted instances.

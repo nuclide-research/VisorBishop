@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Nicholas-Kloster/VisorBishop/internal/probe"
+	"github.com/nuclide-research/VisorBishop/internal/probe"
 )
 
 // MLflowProber detects MLflow Tracking Server self-hosted instances.

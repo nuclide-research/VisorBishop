@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Nicholas-Kloster/VisorBishop/internal/fingerprint"
-	"github.com/Nicholas-Kloster/VisorBishop/internal/probe"
+	"github.com/nuclide-research/VisorBishop/internal/fingerprint"
+	"github.com/nuclide-research/VisorBishop/internal/probe"
 )
 
 // HostReport bundles all findings (platform + IP-shadow) for a single target.

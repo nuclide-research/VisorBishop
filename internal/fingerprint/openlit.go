@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Nicholas-Kloster/VisorBishop/internal/probe"
+	"github.com/nuclide-research/VisorBishop/internal/probe"
 )
 
 // OpenLITProber detects OpenLIT self-hosted instances. Auth is mandatory

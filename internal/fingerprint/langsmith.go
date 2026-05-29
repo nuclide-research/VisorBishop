@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/Nicholas-Kloster/VisorBishop/internal/probe"
+	"github.com/nuclide-research/VisorBishop/internal/probe"
 )
 
 // LangSmithProber detects LangChain LangSmith self-hosted instances and

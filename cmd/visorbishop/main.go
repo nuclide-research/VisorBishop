@@ -18,9 +18,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Nicholas-Kloster/VisorBishop/internal/fingerprint"
-	"github.com/Nicholas-Kloster/VisorBishop/internal/output"
-	"github.com/Nicholas-Kloster/VisorBishop/internal/probe"
+	"github.com/nuclide-research/VisorBishop/internal/fingerprint"
+	"github.com/nuclide-research/VisorBishop/internal/output"
+	"github.com/nuclide-research/VisorBishop/internal/probe"
 )
 
 const Version = "0.1.7"

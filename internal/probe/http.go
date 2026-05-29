@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const UserAgent = "VisorBishop/0.1 (+https://github.com/Nicholas-Kloster/VisorBishop)"
+const UserAgent = "VisorBishop/0.1 (+https://github.com/nuclide-research/VisorBishop)"
 
 // NewClient builds an HTTP client suitable for population-scale probing:
 // - InsecureSkipVerify (we're cataloging exposure, not validating TLS chains)

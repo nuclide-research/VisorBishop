@@ -12,7 +12,7 @@ deliverable for [Phase 3 of the cross-platform AI observability sweep][synth].
 Read-only by design. No credential testing, no payload fuzzing, no
 destructive operations.
 
-[synth]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/SYNTHESIS-ai-observability-2026-05-10.md
+[synth]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/SYNTHESIS-ai-observability-2026-05-10.md
 
 ## What it catches
 
@@ -96,7 +96,7 @@ For each port, the probe is non-destructive:
 
 No credential testing. No data extraction.
 
-[m12]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/methodology/insight-12-ip-direct-shadow.md
+[m12]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/methodology/insight-12-ip-direct-shadow.md
 
 ## Output formats
 
@@ -143,16 +143,16 @@ case study in [AI-LLM-Infrastructure-OSINT][osint]:
 - `helicone.go` ← [Helicone Phase 1][h1] + [Phase 2 deep-dive][h2]
 - `openlit.go`, `lunary.go`, `pezzo.go` ← [small-platforms survey][sm]
 
-[osint]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT
-[p1]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/phoenix-llm-observability-survey-2026-05-10.md
-[p2]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/AR-reputacion-digital-multi-surface-2026-05-10.md
-[ls1]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/langsmith-llm-observability-survey-2026-05-10.md
-[ls2]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/langsmith-deep-dive-survey-2026-05-10.md
-[lf1]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/langfuse-llm-observability-survey-2026-05-10.md
-[lf2]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/langfuse-deep-dive-survey-2026-05-10.md
-[h1]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/helicone-llm-observability-survey-2026-05-10.md
-[h2]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/helicone-deep-dive-survey-2026-05-10.md
-[sm]: https://github.com/Nicholas-Kloster/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/observability-tier-small-platforms-survey-2026-05-10.md
+[osint]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT
+[p1]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/phoenix-llm-observability-survey-2026-05-10.md
+[p2]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/AR-reputacion-digital-multi-surface-2026-05-10.md
+[ls1]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/langsmith-llm-observability-survey-2026-05-10.md
+[ls2]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/langsmith-deep-dive-survey-2026-05-10.md
+[lf1]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/langfuse-llm-observability-survey-2026-05-10.md
+[lf2]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/langfuse-deep-dive-survey-2026-05-10.md
+[h1]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/helicone-llm-observability-survey-2026-05-10.md
+[h2]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/helicone-deep-dive-survey-2026-05-10.md
+[sm]: https://github.com/nuclide-research/AI-LLM-Infrastructure-OSINT/blob/main/case-studies/commercial/observability-tier-small-platforms-survey-2026-05-10.md
 
 ## License
 
